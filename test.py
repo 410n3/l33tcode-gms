@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox
 from playwright.sync_api import sync_playwright
 from dataclasses import dataclass, asdict, field
 import pandas as pd
@@ -36,7 +36,7 @@ class BusinessList:
         if os.path.exists(self.combined_data_filepath):
             existing_data = pd.read_excel(self.combined_data_filepath)
             combined_data = pd.concat([existing_data, self.dataframe()], ignore_index=True)
-            combined_data.to_excel(self.combined_data_filepath, index=False, header=not os.path.exists(self.combined_data_filepath))
+            combined_data.to_excel(self.combined_data_filepath, index=False)
         else:
             self.dataframe().to_excel(self.combined_data_filepath, index=False)
 
@@ -50,33 +50,18 @@ class L33TCODEGMSApp:
     def __init__(self, root):
         self.root = root
         self.root.title("L33TCODE GMS - Google Map Scraper")
-        self.root.geometry("500x400")
+        self.root.geometry("400x300")
         self.create_widgets()
         
     def create_widgets(self):
         title_label = tk.Label(self.root, text="L33TCODE GMS", font=("Arial", 16))
-        title_label.pack(pady=10)
+        title_label.pack(pady=20)
         
-        search_frame = tk.Frame(self.root)
-        search_frame.pack(pady=5)
-        
-        search_label = tk.Label(search_frame, text="Search Term:")
-        search_label.grid(row=0, column=0, padx=5)
-        
-        self.search_entry = tk.Entry(search_frame, width=30)
-        self.search_entry.grid(row=0, column=1)
-        
-        total_label = tk.Label(search_frame, text="Total Results:")
-        total_label.grid(row=1, column=0, padx=5, pady=5)
-        
-        self.total_entry = tk.Entry(search_frame, width=10)
-        self.total_entry.grid(row=1, column=1)
-        
-        run_button = tk.Button(self.root, text="Run Scraper", command=self.run_scraper)
-        run_button.pack(pady=10)
+        instruction_label = tk.Label(self.root, text="Reads search terms from 'input.txt'")
+        instruction_label.pack()
         
         save_frame = tk.Frame(self.root)
-        save_frame.pack(pady=5)
+        save_frame.pack(pady=20)
         
         save_label = tk.Label(save_frame, text="Save as:")
         save_label.grid(row=0, column=0, padx=5)
@@ -84,35 +69,47 @@ class L33TCODEGMSApp:
         self.save_option = ttk.Combobox(save_frame, values=["Excel", "CSV"])
         self.save_option.grid(row=0, column=1)
         
-    def run_scraper(self):
-        search_term = self.search_entry.get()
-        total_results = int(self.total_entry.get()) if self.total_entry.get().isdigit() else 100  # Default to 100 if empty
-        save_format = self.save_option.get()
+        run_button = tk.Button(self.root, text="Run Scraper", command=self.run_scraper)
+        run_button.pack(pady=10)
         
-        if not search_term:
-            messagebox.showwarning("Input Error", "Please enter a search term.")
+    def run_scraper(self):
+        save_format = self.save_option.get()
+        input_file_name = 'input.txt'
+        input_file_path = os.path.join(os.getcwd(), input_file_name)
+
+        if not os.path.exists(input_file_path):
+            messagebox.showerror("File Not Found", f"{input_file_name} is missing.")
             return
 
-        messagebox.showinfo("Scraping Started", f"Scraping for '{search_term}'...")
+        with open(input_file_path, 'r') as file:
+            search_list = [line.strip() for line in file.readlines()]
+
+        if not search_list:
+            messagebox.showwarning("Empty File", "No search terms found in input.txt.")
+            return
+        
+        messagebox.showinfo("Scraping Started", "Scraping initiated...")
+        business_list = BusinessList()
 
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
             page.goto("https://www.google.com/maps")
-            page.fill('//input[@id="searchboxinput"]', search_term)
-            page.press('//input[@id="searchboxinput"]', "Enter")
             
-            business_list = BusinessList()
-            # Add logic for scraping (e.g., using locators)
-            # Append scraped data to business_list.business_list
+            for search_term in search_list:
+                page.fill('//input[@id="searchboxinput"]', search_term)
+                page.press('//input[@id="searchboxinput"]', "Enter")
+                # Add delay and scraping logic as needed
+                # Append scraped data to business_list.business_list
 
-            if save_format == "Excel":
-                business_list.save_to_excel()
-            elif save_format == "CSV":
-                business_list.save_to_csv(f"{search_term}_data")
-            
-            messagebox.showinfo("Scraping Complete", f"Data saved as {save_format}.")
             browser.close()
+
+        if save_format == "Excel":
+            business_list.save_to_excel()
+        elif save_format == "CSV":
+            business_list.save_to_csv("google_maps_data")
+
+        messagebox.showinfo("Scraping Complete", f"Data saved as {save_format}.")
 
 if __name__ == "__main__":
     root = tk.Tk()
