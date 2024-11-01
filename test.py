@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, scrolledtext
 from playwright.sync_api import sync_playwright
 from dataclasses import dataclass, asdict, field
 import pandas as pd
@@ -50,12 +50,12 @@ class L33TCODEGMSApp:
     def __init__(self, root):
         self.root = root
         self.root.title("L33TCODE GMS - Google Map Scraper")
-        self.root.geometry("400x300")
+        self.root.geometry("600x400")
         self.create_widgets()
         
     def create_widgets(self):
         title_label = tk.Label(self.root, text="L33TCODE GMS", font=("Arial", 16))
-        title_label.pack(pady=20)
+        title_label.pack(pady=10)
         
         instruction_label = tk.Label(self.root, text="Reads search terms from 'input.txt'")
         instruction_label.pack()
@@ -68,10 +68,14 @@ class L33TCODEGMSApp:
         
         self.save_option = ttk.Combobox(save_frame, values=["Excel", "CSV"])
         self.save_option.grid(row=0, column=1)
-        
+
         run_button = tk.Button(self.root, text="Run Scraper", command=self.run_scraper)
         run_button.pack(pady=10)
-        
+
+        # Text area to display results
+        self.result_text = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, width=70, height=10)
+        self.result_text.pack(pady=10)
+
     def run_scraper(self):
         save_format = self.save_option.get()
         input_file_name = 'input.txt'
@@ -90,6 +94,7 @@ class L33TCODEGMSApp:
         
         messagebox.showinfo("Scraping Started", "Scraping initiated...")
         business_list = BusinessList()
+        result_display = []
 
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
@@ -99,16 +104,41 @@ class L33TCODEGMSApp:
             for search_term in search_list:
                 page.fill('//input[@id="searchboxinput"]', search_term)
                 page.press('//input[@id="searchboxinput"]', "Enter")
-                # Add delay and scraping logic as needed
-                # Append scraped data to business_list.business_list
+                page.wait_for_timeout(5000)  # Wait for results to load
+
+                # Add your scraping logic here. For demonstration, we simulate results.
+                # Here you will add the actual scraping logic to collect the business details
+                # For example:
+                # business = Business(name="Example", address="123 Example St", ...)
+                # business_list.business_list.append(business)
+                
+                # Simulated data for demonstration (replace this with actual scraping)
+                business = Business(name=search_term, address="123 Example St", website="www.example.com", 
+                                    category="Restaurant", phone_number="123-456-7890", 
+                                    reviews_count=100, reviews_average=4.5)
+                business_list.business_list.append(business)
+                
+                # Displaying the results in the text area
+                result_display.append(f"Business Name: {business.name}\n"
+                                      f"Address: {business.address}\n"
+                                      f"Website: {business.website}\n"
+                                      f"Category: {business.category}\n"
+                                      f"Phone: {business.phone_number}\n"
+                                      f"Reviews Count: {business.reviews_count}\n"
+                                      f"Reviews Average: {business.reviews_average}\n"
+                                      f"{'='*40}\n")
 
             browser.close()
 
+        # Save the results in the chosen format
         if save_format == "Excel":
             business_list.save_to_excel()
         elif save_format == "CSV":
             business_list.save_to_csv("google_maps_data")
 
+        # Display results in the text area
+        self.result_text.delete(1.0, tk.END)  # Clear previous results
+        self.result_text.insert(tk.END, ''.join(result_display))
         messagebox.showinfo("Scraping Complete", f"Data saved as {save_format}.")
 
 if __name__ == "__main__":
