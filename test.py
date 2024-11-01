@@ -50,7 +50,7 @@ class L33TCODEGMSApp:
     def __init__(self, root):
         self.root = root
         self.root.title("L33TCODE GMS - Google Map Scraper")
-        self.root.geometry("600x400")
+        self.root.geometry("600x450")
         self.create_widgets()
         
     def create_widgets(self):
@@ -59,7 +59,10 @@ class L33TCODEGMSApp:
         
         instruction_label = tk.Label(self.root, text="Reads search terms from 'input.txt'")
         instruction_label.pack()
-        
+
+        self.count_label = tk.Label(self.root, text="Scraping Count: 0")
+        self.count_label.pack(pady=5)
+
         save_frame = tk.Frame(self.root)
         save_frame.pack(pady=20)
         
@@ -95,6 +98,7 @@ class L33TCODEGMSApp:
         messagebox.showinfo("Scraping Started", "Scraping initiated...")
         business_list = BusinessList()
         result_display = []
+        scraping_count = 0
 
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
@@ -102,16 +106,12 @@ class L33TCODEGMSApp:
             page.goto("https://www.google.com/maps")
             
             for search_term in search_list:
+                scraping_count += 1  # Incrementing the scraping count
+                self.count_label.config(text=f"Scraping Count: {scraping_count}")  # Update the label
                 page.fill('//input[@id="searchboxinput"]', search_term)
                 page.press('//input[@id="searchboxinput"]', "Enter")
                 page.wait_for_timeout(5000)  # Wait for results to load
 
-                # Add your scraping logic here. For demonstration, we simulate results.
-                # Here you will add the actual scraping logic to collect the business details
-                # For example:
-                # business = Business(name="Example", address="123 Example St", ...)
-                # business_list.business_list.append(business)
-                
                 # Simulated data for demonstration (replace this with actual scraping)
                 business = Business(name=search_term, address="123 Example St", website="www.example.com", 
                                     category="Restaurant", phone_number="123-456-7890", 
@@ -139,7 +139,7 @@ class L33TCODEGMSApp:
         # Display results in the text area
         self.result_text.delete(1.0, tk.END)  # Clear previous results
         self.result_text.insert(tk.END, ''.join(result_display))
-        messagebox.showinfo("Scraping Complete", f"Data saved as {save_format}.")
+        messagebox.showinfo("Scraping Complete", f"Data saved as {save_format}. Total Searches: {scraping_count}")
 
 if __name__ == "__main__":
     root = tk.Tk()
