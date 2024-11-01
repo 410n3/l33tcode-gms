@@ -1,13 +1,13 @@
-import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext
 from playwright.sync_api import sync_playwright
 from dataclasses import dataclass, asdict, field
 import pandas as pd
+import argparse
 import os
+import sys
 
 @dataclass
 class Business:
-    """Holds business data."""
+    """holds business data"""
     name: str = None
     address: str = None
     website: str = None
@@ -18,130 +18,312 @@ class Business:
     latitude: float = None
     longitude: float = None
 
+
 @dataclass
 class BusinessList:
-    """Holds list of Business objects and saves to Excel/CSV."""
+    """holds list of Business objects,
+    and save to both excel and csv
+    """
     business_list: list[Business] = field(default_factory=list)
     save_at = 'output'
     combined_data_filepath = os.path.join(save_at, "combined_data.xlsx")
 
     def dataframe(self):
-        """Transform business_list to pandas dataframe."""
-        return pd.json_normalize((asdict(business) for business in self.business_list), sep="_")
+        """transform business_list to pandas dataframe
+
+        Returns: pandas dataframe
+        """
+        return pd.json_normalize(
+            (asdict(business) for business in self.business_list), sep="_"
+        )
 
     def save_to_excel(self):
-        """Save dataframe to Excel."""
+        """saves pandas dataframe to a single excel (xlsx) file"""
+
         if not os.path.exists(self.save_at):
             os.makedirs(self.save_at)
+
         if os.path.exists(self.combined_data_filepath):
             existing_data = pd.read_excel(self.combined_data_filepath)
             combined_data = pd.concat([existing_data, self.dataframe()], ignore_index=True)
-            combined_data.to_excel(self.combined_data_filepath, index=False)
+            combined_data.to_excel(self.combined_data_filepath, index=False, header=not os.path.exists(self.combined_data_filepath))
         else:
             self.dataframe().to_excel(self.combined_data_filepath, index=False)
 
     def save_to_csv(self, filename):
-        """Save dataframe to CSV."""
+        """saves pandas dataframe to csv file"""
+
         if not os.path.exists(self.save_at):
             os.makedirs(self.save_at)
         self.dataframe().to_csv(f"output/{filename}.csv", index=False)
 
-class L33TCODEGMSApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("L33TCODE GMS - Google Map Scraper")
-        self.root.geometry("600x450")
-        self.create_widgets()
-        
-    def create_widgets(self):
-        title_label = tk.Label(self.root, text="L33TCODE GMS", font=("Arial", 16))
-        title_label.pack(pady=10)
-        
-        instruction_label = tk.Label(self.root, text="Reads search terms from 'input.txt'")
-        instruction_label.pack()
+    def save_business_to_excel(self, business, search_for):
+        """Saves a single Business object to an Excel file"""
+        if not os.path.exists(self.save_at):
+            os.makedirs(self.save_at)
 
-        self.count_label = tk.Label(self.root, text="Scraping Count: 0")
-        self.count_label.pack(pady=5)
+        business_df = pd.json_normalize(asdict(business), sep="_")
 
-        save_frame = tk.Frame(self.root)
-        save_frame.pack(pady=20)
-        
-        save_label = tk.Label(save_frame, text="Save as:")
-        save_label.grid(row=0, column=0, padx=5)
-        
-        self.save_option = ttk.Combobox(save_frame, values=["Excel", "CSV"])
-        self.save_option.grid(row=0, column=1)
+        # Check if the file exists
+        if os.path.exists(self.combined_data_filepath):
+            existing_data = pd.read_excel(self.combined_data_filepath)
+            combined_data = pd.concat([existing_data, business_df], ignore_index=True)
+            combined_data.to_excel(self.combined_data_filepath, index=False, header=not os.path.exists(self.combined_data_filepath))
+        else:
+            business_df.to_excel(self.combined_data_filepath, index=False)
 
-        run_button = tk.Button(self.root, text="Run Scraper", command=self.run_scraper)
-        run_button.pack(pady=10)
+# ... (rest of your code)
 
-        # Text area to display results
-        self.result_text = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, width=70, height=10)
-        self.result_text.pack(pady=10)
+# Example usage:
+# Assuming you have a Business object called 'business' and a BusinessList called 'business_list'
+# business_list.save_business_to_excel(business, "example_search")
+from playwright.sync_api import sync_playwright
+from dataclasses import dataclass, asdict, field
+import pandas as pd
+import argparse
+import os
+import sys
 
-    def run_scraper(self):
-        save_format = self.save_option.get()
-        input_file_name = 'input.txt'
-        input_file_path = os.path.join(os.getcwd(), input_file_name)
+@dataclass
+class Business:
+    """holds business data"""
+    name: str = None
+    address: str = None
+    website: str = None
+    category: str = None
+    phone_number: str = None
+    reviews_count: int = None
+    reviews_average: float = None
+    latitude: float = None
+    longitude: float = None
 
-        if not os.path.exists(input_file_path):
-            messagebox.showerror("File Not Found", f"{input_file_name} is missing.")
-            return
 
+@dataclass
+class BusinessList:
+    """holds list of Business objects,
+    and save to both excel and csv
+    """
+    business_list: list[Business] = field(default_factory=list)
+    save_at = 'output'
+    combined_data_filepath = os.path.join(save_at, "combined_data.xlsx")
+
+    def dataframe(self):
+        """transform business_list to pandas dataframe
+
+        Returns: pandas dataframe
+        """
+        return pd.json_normalize(
+            (asdict(business) for business in self.business_list), sep="_"
+        )
+
+    def save_to_excel(self):
+        """saves pandas dataframe to a single excel (xlsx) file"""
+
+        if not os.path.exists(self.save_at):
+            os.makedirs(self.save_at)
+
+        if os.path.exists(self.combined_data_filepath):
+            existing_data = pd.read_excel(self.combined_data_filepath)
+            combined_data = pd.concat([existing_data, self.dataframe()], ignore_index=True)
+            combined_data.to_excel(self.combined_data_filepath, index=False, header=not os.path.exists(self.combined_data_filepath))
+        else:
+            self.dataframe().to_excel(self.combined_data_filepath, index=False)
+
+    def save_to_csv(self, filename):
+        """saves pandas dataframe to csv file"""
+
+        if not os.path.exists(self.save_at):
+            os.makedirs(self.save_at)
+        self.dataframe().to_csv(f"output/{filename}.csv", index=False)
+
+    def save_business_to_excel(self, business, search_for):
+        """Saves a single Business object to an Excel file"""
+        if not os.path.exists(self.save_at):
+            os.makedirs(self.save_at)
+
+        business_df = pd.json_normalize(asdict(business), sep="_")
+
+        # Check if the file exists
+        if os.path.exists(self.combined_data_filepath):
+            existing_data = pd.read_excel(self.combined_data_filepath)
+            combined_data = pd.concat([existing_data, business_df], ignore_index=True)
+            combined_data.to_excel(self.combined_data_filepath, index=False, header=not os.path.exists(self.combined_data_filepath))
+        else:
+            business_df.to_excel(self.combined_data_filepath, index=False)
+
+# Read search from arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("-s", "--search", type=str)
+parser.add_argument("-t", "--total", type=int)
+args = parser.parse_args()
+
+if args.search:
+    search_list = [args.search]
+
+if args.total:
+    total = args.total
+else:
+    # If no total is passed, we set the value to a random big number
+    total = 1_000_000
+
+if not args.search:
+    search_list = []
+    # Read search from input.txt file
+    input_file_name = 'input.txt'
+    # Get the absolute path of the file in the current working directory
+    input_file_path = os.path.join(os.getcwd(), input_file_name)
+    # Check if the file exists
+    if os.path.exists(input_file_path):
+        # Open the file in read mode
         with open(input_file_path, 'r') as file:
-            search_list = [line.strip() for line in file.readlines()]
+            # Read all lines into a list
+            search_list = file.readlines()
 
-        if not search_list:
-            messagebox.showwarning("Empty File", "No search terms found in input.txt.")
-            return
-        
-        messagebox.showinfo("Scraping Started", "Scraping initiated...")
+    if len(search_list) == 0:
+        print('Error occurred: You must either pass the -s search argument, or add searches to input.txt')
+        sys.exit()
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
+    page = browser.new_page()
+
+    page.goto("https://www.google.com/maps", timeout=60000)
+    # Wait is added for the development phase. You can remove it in production
+    page.wait_for_timeout(5000)
+
+    for search_for_index, search_for in enumerate(search_list):
+        print(f"-----\n{search_for_index} - {search_for}".strip())
+
+        page.locator('//input[@id="searchboxinput"]').fill(search_for)
+        page.wait_for_timeout(3000)
+
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(5000)
+
+        # Scrolling
+        page.hover('//a[contains(@href, "https://www.google.com/maps/place")]')
+
+        # This variable is used to detect if the bot
+        # scraped the same number of listings in the previous iteration
+        previously_counted = 0
+        while True:
+            page.mouse.wheel(0, 10000)
+            page.wait_for_timeout(3000)
+
+            if (
+                page.locator(
+                    '//a[contains(@href, "https://www.google.com/maps/place")]'
+                ).count()
+                >= total
+            ):
+                listings = page.locator(
+                    '//a[contains(@href, "https://www.google.com/maps/place")]'
+                ).all()[:total]
+                listings = [listing.locator("xpath=..") for listing in listings]
+                print(f"Total Scraped: {len(listings)}")
+                break
+            else:
+                # Logic to break from loop to not run infinitely
+                # in case arrived at all available listings
+                if (
+                    page.locator(
+                        '//a[contains(@href, "https://www.google.com/maps/place")]'
+                    ).count()
+                    == previously_counted
+                ):
+                    listings = page.locator(
+                        '//a[contains(@href, "https://www.google.com/maps/place")]'
+                    ).all()
+                    print(f"Arrived at all available\nTotal Scraped: {len(listings)}")
+                    break
+                else:
+                    previously_counted = page.locator(
+                        '//a[contains(@href, "https://www.google.com/maps/place")]'
+                    ).count()
+                    print(
+                        f"Currently Scraped: ",
+                        page.locator(
+                            '//a[contains(@href, "https://www.google.com/maps/place")]'
+                        ).count(),
+                    )
+
         business_list = BusinessList()
-        result_display = []
-        scraping_count = 0
 
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto("https://www.google.com/maps")
-            
-            for search_term in search_list:
-                scraping_count += 1  # Incrementing the scraping count
-                self.count_label.config(text=f"Scraping Count: {scraping_count}")  # Update the label
-                page.fill('//input[@id="searchboxinput"]', search_term)
-                page.press('//input[@id="searchboxinput"]', "Enter")
-                page.wait_for_timeout(5000)  # Wait for results to load
+        # Scraping
+        for business_index, listing in enumerate(listings):
+            try:
+                listing.click()
+                page.wait_for_timeout(5000)
 
-                # Simulated data for demonstration (replace this with actual scraping)
-                business = Business(name=search_term, address="123 Example St", website="www.example.com", 
-                                    category="Restaurant", phone_number="123-456-7890", 
-                                    reviews_count=100, reviews_average=4.5)
-                business_list.business_list.append(business)
+                name_xpath = '//h1[@class="DUwDvf lfPIob"]'
+                address_xpath = '//button[@data-item-id="address"]//div[contains(@class, "fontBodyMedium")]'
+                website_xpath = '//a[@data-item-id="authority"]//div[contains(@class, "fontBodyMedium")]'
+                phone_number_xpath = '//button[contains(@data-item-id, "phone:tel:")]//div[contains(@class, "fontBodyMedium")]'
+                reviews_span_xpath = '//span[@role="img"]'
+                category_xpath ='//div[contains(@class, "fontBodyMedium")]//button[contains(@class, "DkEaL")]'
+
+
+                business = Business()
+
+                if page.locator(name_xpath).count() > 0:
+                    business.name = page.locator(name_xpath).inner_text()
+                else:
+                    business.name = ""
+                if page.locator(address_xpath).count() > 0:
+                    business.address = page.locator(address_xpath).all()[0].inner_text()
+                else:
+                    business.address = ""
+                if page.locator(website_xpath).count() > 0:
+                    business.website = page.locator(website_xpath).all()[0].inner_text()
+                else:
+                    business.website = ""
+                if page.locator(phone_number_xpath).count() > 0:
+                    business.phone_number = page.locator(phone_number_xpath).all()[0].inner_text()
+                else:
+                    business.phone_number = ""
+
+                if page.locator(category_xpath).count() > 0:
+                    business.category = page.locator(category_xpath).all()[0].inner_text()
+                else:
+                    business.category = ""
+
                 
-                # Displaying the results in the text area
-                result_display.append(f"Business Name: {business.name}\n"
-                                      f"Address: {business.address}\n"
-                                      f"Website: {business.website}\n"
-                                      f"Category: {business.category}\n"
-                                      f"Phone: {business.phone_number}\n"
-                                      f"Reviews Count: {business.reviews_count}\n"
-                                      f"Reviews Average: {business.reviews_average}\n"
-                                      f"{'='*40}\n")
+                if listing.locator(reviews_span_xpath).count() > 0:
+                    business.reviews_average = float(
+                        listing.locator(reviews_span_xpath).all()[0]
+                        .get_attribute("aria-label")
+                        .split()[0]
+                        .replace(",", ".")
+                        .strip()
+                    )
+                    business.reviews_count = int(
+                        listing.locator(reviews_span_xpath).all()[0]
+                        .get_attribute("aria-label")
+                        .split()[2]
+                        .replace(',','')
+                        .strip()
+                    )
+                else:
+                    business.reviews_average = ""
+                    business.reviews_count = ""
+                
 
-            browser.close()
+                #business.latitude, business.longitude = extract_coordinates_from_url(page.url)
 
-        # Save the results in the chosen format
-        if save_format == "Excel":
-            business_list.save_to_excel()
-        elif save_format == "CSV":
-            business_list.save_to_csv("google_maps_data")
+                business_list.business_list.append(business)
 
-        # Display results in the text area
-        self.result_text.delete(1.0, tk.END)  # Clear previous results
-        self.result_text.insert(tk.END, ''.join(result_display))
-        messagebox.showinfo("Scraping Complete", f"Data saved as {save_format}. Total Searches: {scraping_count}")
+                # Print the business data after processing each listing
+                print(f"Business {business_index + 1}: {business}")
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = L33TCODEGMSApp(root)
-    root.mainloop()
+                # Save the business data after processing each listing
+                business_list.save_business_to_excel(
+                    business,
+                    search_for
+                )
+            except Exception as e:
+                print(f'Error occurred: {e}')
+
+        # Save the entire list after processing all listings for a search query
+        business_list.save_to_csv(f"google_maps_data_{search_for}".replace(' ', '_'))
+
+    browser.close()
